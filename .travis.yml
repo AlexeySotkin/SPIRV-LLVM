@@ -28,7 +28,6 @@ install:
   - echo $PATH
   - which go
   - \rm -rf `go env GOROOT`
-  - which go
 
 script:
   - mkdir build && cd build
