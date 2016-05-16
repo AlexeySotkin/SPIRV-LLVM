@@ -26,8 +26,11 @@ compiler:
 # remove Go language to avoid failures due to issues with testing of Go binding issues
 install:
   - echo $PATH
-  - which go
-  - \rm -rf `go env GOROOT`
+  - export GOROOT=`go env GOROOT`
+  - PATH=${PATH//${GOROOT//\//\\\/}/}
+  - echo $PATH
+#  - \rm -rf `go env GOROOT`
+#  - which go
 
 script:
   - mkdir build && cd build
