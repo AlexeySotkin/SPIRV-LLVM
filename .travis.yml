@@ -25,10 +25,9 @@ compiler:
 
 # remove Go language to avoid failures due to issues with testing of Go binding issues
 install:
-  - dpkg --list | grep -i go
+  - echo $PATH
   - which go
-  - dpkg -S `go env GOROOT`/bin/go
-  - sudo apt-get --purge remove golang
+  - \rm -rf `go env GOROOT`
   - which go
 
 script:
