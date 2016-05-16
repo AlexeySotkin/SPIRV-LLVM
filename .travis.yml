@@ -7,7 +7,7 @@ os:
 
 # Use Ubuntu 14.04 LTS (Trusty) as the Linux testing environment.
 sudo: required
-dist: trusty
+#dist: trusty
 
 env:
   # Each line is a set of environment variables set before a build.
@@ -25,12 +25,13 @@ compiler:
 
 # remove Go language to avoid failures due to issues with testing of Go binding issues
 install:
+  - sudo apt-get --list | grep -i go
   - sudo apt-get --purge remove golang
+  - which go
 
 script:
   - mkdir build && cd build
   - cmake -D CMAKE_VERBOSE_MAKEFILE:BOOL=OFF -D CMAKE_COLOR_MAKEFILE:BOOL=ON -D LLVM_INCLUDE_EXAMPLES:BOOL=OFF -D LLVM_INCLUDE_TESTS:BOOL=ON -D LLVM_BUILD_TESTS:BOOL=ON -D LLVM_TARGETS_TO_BUILD="X86" -G "Unix Makefiles" -D CMAKE_BUILD_TYPE:STRING=${BUILD_TYPE}  ..
-  - which go
   - make check-llvm -j 2
 
 
