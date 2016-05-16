@@ -25,7 +25,7 @@ compiler:
 
 # remove Go language to avoid failures due to issues with testing of Go binding issues
 install:
-  - sudo apt-get --list | grep -i go
+  - dpkg --list | grep -i go
   - sudo apt-get --purge remove golang
   - which go
 
