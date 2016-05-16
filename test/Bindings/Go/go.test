@@ -1,4 +1,4 @@
-; XFAIL: *
+; XFAIL *
 ; RUN: llvm-go test llvm.org/llvm/bindings/go/llvm
 
 ; REQUIRES: shell, not_ubsan
