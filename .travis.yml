@@ -7,7 +7,7 @@ os:
 
 # Use Ubuntu 14.04 LTS (Trusty) as the Linux testing environment.
 sudo: required
-#dist: trusty
+dist: trusty
 
 env:
   # Each line is a set of environment variables set before a build.
@@ -26,6 +26,8 @@ compiler:
 # remove Go language to avoid failures due to issues with testing of Go binding issues
 install:
   - dpkg --list | grep -i go
+  - which go
+  - dpkg -S `go env GOROOT`/bin/go
   - sudo apt-get --purge remove golang
   - which go
 
