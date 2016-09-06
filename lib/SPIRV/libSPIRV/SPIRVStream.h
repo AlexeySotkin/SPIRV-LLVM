@@ -1,4 +1,4 @@
-//===- SPIRVStream.h – Class to represent a SPIR-V Stream --------*- C++ -*-===//
+//===- SPIRVStream.h ? Class to represent a SPIR-V Stream --------*- C++ -*-===//
 //
 //                     The LLVM/SPIRV Translator
 //
@@ -112,6 +112,17 @@ operator>>(const SPIRVDecoder& I, T &V) {
   if (SPIRVUseTextFormat) {
     uint32_t W;
     I.IS >> W;
+    while (I.IS.fail()) {
+      I.IS.clear();
+      std::string str;
+      std::getline(I.IS, str);
+      if (I.IS.eof())
+        return I;
+      assert(str[0] == ';' && "Unexpected symbol");
+      SPIRVDBG(spvdbgs() << "Read comment (this line is skipped): \""
+               << str << "\"\n");
+      I.IS >> W;
+    }
     V = static_cast<T>(W);
     SPIRVDBG(spvdbgs() << "Read word: W = " << W << " V = " << V << '\n');
     return I;
