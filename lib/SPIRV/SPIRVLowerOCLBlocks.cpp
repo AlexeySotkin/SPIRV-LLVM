@@ -207,9 +207,13 @@ private:
       Value *CtxAlign = nullptr;
       getBlockInvokeFuncAndContext(CallBlkBind, &InvF, &Ctx, &CtxLen,
           &CtxAlign);
-      for (auto II = CallBlkBind->user_begin(), EE = CallBlkBind->user_end();
-          II != EE;) {
+      Value *V = CallBlkBind;
+      if (CallBlkBind->hasNUses(1) && isa<StoreInst>(CallBlkBind->user_back()))
+          V = cast<StoreInst>(CallBlkBind->user_back())->getPointerOperand();
+      for (auto II = V->user_begin(), EE = V->user_end(); II != EE;) {
         auto BlkUser = *II++;
+        if (isa<LoadInst>(BlkUser) && BlkUser->hasNUses(1))
+            BlkUser = BlkUser->user_back();
         SPIRVDBG(dbgs() << "  Block user: " << *BlkUser << '\n');
         if (auto Ret = dyn_cast<ReturnInst>(BlkUser)) {
           bool Inlined = false;

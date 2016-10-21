@@ -99,7 +99,7 @@ namespace llvm {
 
 namespace SPIRV{
 
-cl::opt<bool> SPIRVMemToReg("spirv-mem2reg", cl::init(true),
+cl::opt<bool> SPIRVMemToReg("spirv-mem2reg", cl::init(false),
     cl::desc("LLVM/SPIR-V translation enable mem2reg"));
 
 
@@ -496,6 +496,9 @@ LLVMToSPIRV::transType(Type *T) {
       } else if (STName.find(kSPR2TypeName::ImagePrefix) == 0) {
         assert(AddrSpc == SPIRAS_Global);
         auto SPIRVImageTy = getSPIRVImageTypeFromOCL(M, T);
+        auto TyLoc = TypeMap.find(SPIRVImageTy);
+        if (TyLoc != TypeMap.end())
+          return TyLoc->second;
         return mapType(T, transSPIRVOpaqueType(SPIRVImageTy));
       } else if (STName.startswith(kSPIRVTypeName::PrefixAndDelim))
         return transSPIRVOpaqueType(T);
@@ -1231,14 +1234,36 @@ LLVMToSPIRV::oclTransSpvcCastSampler(CallInst* CI, SPIRVBasicBlock *BB) {
   } else if (auto Load = dyn_cast<LoadInst>(Arg)) {
     // If value of the sampler is loaded from a global constant, use its
     // initializer for initialization of the sampler.
-    auto Op = Load->getPointerOperand();
-    assert(isa<GlobalVariable>(Op) && "Unknown sampler pattern!");
-    auto GV = cast<GlobalVariable>(Op);
-    assert(GV->isConstant() ||
-      GV->getType()->getPointerAddressSpace() == SPIRAS_Constant);
-    auto Initializer = GV->getInitializer();
-    assert(isa<ConstantInt>(Initializer) && "sampler not constant int?");
-    return GetSamplerConstant(cast<ConstantInt>(Initializer)->getZExtValue());
+    Value *Op = Load->getPointerOperand();
+    assert((isa<GlobalVariable>(Op) || isa<AllocaInst>(Op))
+           && "Unknown sampler pattern!");
+    if (isa<GlobalVariable>(Op)) {
+        auto GV = cast<GlobalVariable>(Op);
+        assert(GV->isConstant() ||
+          GV->getType()->getPointerAddressSpace() == SPIRAS_Constant);
+        auto Initializer = GV->getInitializer();
+        assert(isa<ConstantInt>(Initializer) && "sampler not constant int?");
+        return GetSamplerConstant(cast<ConstantInt>(Initializer)->getZExtValue());
+    }
+    else if (isa<AllocaInst>(Op)) {
+      // If operand is alloca and it has the single store,
+      // we can replace result of the load by valueOperand of the store.
+      // According to OpenCL C restrictions (6.9.b):
+      // "A sampler argument or variable cannot be modified"
+      // So such a naive approach should work for samplers.
+      StoreInst *SI = nullptr;
+      for (auto U : Op->users()) {
+        if (isa<StoreInst>(U)) {
+          if (SI) { // More than one store.
+            SI = nullptr;
+            break;
+          } else {
+            SI = cast<StoreInst>(U);
+          }
+        }
+      }
+      if (SI) Arg = SI->getValueOperand();
+    }
   }
   // Sampler is a function argument
   auto BV = transValue(Arg, BB);
