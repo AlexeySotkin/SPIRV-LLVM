@@ -67,6 +67,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/GlobalStatus.h"
+#include "llvm/Transforms/Utils/PromoteMemToReg.h"
 #include <iostream>
 #include <list>
 #include <memory>
@@ -240,6 +241,8 @@ private:
         }
       }
       erase(CallBlkBind);
+      InvF->removeFromParent();
+      M->getFunctionList().push_front(InvF);
     }
     changed |= eraseUselessFunctions();
     return changed;
@@ -515,7 +518,7 @@ private:
     } else if (auto F = dyn_cast<Function>(Blk->stripPointerCasts())) {
       InvF = F;
       Ctx = Constant::getNullValue(IntegerType::getInt8PtrTy(M->getContext()));
-    } else if (auto Load = dyn_cast<LoadInst>(Blk)) {
+    } else if (LoadInst *Load = dyn_cast<LoadInst>(Blk)) {
       auto Op = Load->getPointerOperand();
       if (auto GV = dyn_cast<GlobalVariable>(Op)) {
         if (GV->isConstant()) {
@@ -523,6 +526,23 @@ private:
           Ctx = Constant::getNullValue(IntegerType::getInt8PtrTy(M->getContext()));
         } else {
           llvm_unreachable("load non-constant block?");
+        }
+      } else if (AllocaInst *AI = dyn_cast<AllocaInst>(Op)){
+        assert(llvm::isAllocaPromotable(AI));
+        for (auto U : AI->users()) {
+          if(StoreInst *SI = dyn_cast<StoreInst>(U)) {
+            Value *V = SI->getValueOperand();
+            assert(isa<CallInst>(V));
+            CallInst *CallBlkBind = cast<CallInst>(V);
+            assert(CallBlkBind->getCalledFunction()->getName() ==
+                   SPIR_INTRINSIC_BLOCK_BIND && "Invalid block");
+            InvF = dyn_cast<Function>(
+                       CallBlkBind->getArgOperand(0)->stripPointerCasts());
+            CtxLen =   CallBlkBind->getArgOperand(1);
+            CtxAlign = CallBlkBind->getArgOperand(2);
+            Ctx =      CallBlkBind->getArgOperand(3);
+            break;
+          }
         }
       } else {
         llvm_unreachable("Loading block from non global?");

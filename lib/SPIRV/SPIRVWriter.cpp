@@ -77,6 +77,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Utils/PromoteMemToReg.h"
 
 #include <iostream>
 #include <list>
@@ -1245,24 +1246,19 @@ LLVMToSPIRV::oclTransSpvcCastSampler(CallInst* CI, SPIRVBasicBlock *BB) {
         assert(isa<ConstantInt>(Initializer) && "sampler not constant int?");
         return GetSamplerConstant(cast<ConstantInt>(Initializer)->getZExtValue());
     }
-    else if (isa<AllocaInst>(Op)) {
+    else if (AllocaInst *AI = dyn_cast<AllocaInst>(Op)) {
       // If operand is alloca and it has the single store,
       // we can replace result of the load by valueOperand of the store.
       // According to OpenCL C restrictions (6.9.b):
       // "A sampler argument or variable cannot be modified"
       // So such a naive approach should work for samplers.
-      StoreInst *SI = nullptr;
+      assert(llvm::isAllocaPromotable(AI) && "Can't find arg value");
       for (auto U : Op->users()) {
         if (isa<StoreInst>(U)) {
-          if (SI) { // More than one store.
-            SI = nullptr;
-            break;
-          } else {
-            SI = cast<StoreInst>(U);
-          }
+          Arg = cast<StoreInst>(U)->getValueOperand();
+          break;
         }
       }
-      if (SI) Arg = SI->getValueOperand();
     }
   }
   // Sampler is a function argument
