@@ -554,8 +554,10 @@ protected:
     SPIRVInstruction::validate();
     if (getSrc()->isForward() || getDst()->isForward())
       return;
-    assert(getValueType(PtrId)->getPointerElementType() == getValueType(ValId)
-        && "Inconsistent operand types");
+    SPIRVType *ST = getValueType(PtrId);
+    SPIRVType *ET = ST->getPointerElementType();
+    SPIRVType *VT = getValueType(ValId);
+    assert(ET == VT && "Inconsistent operand types");
   }
 private:
   std::vector<SPIRVWord> MemoryAccess;

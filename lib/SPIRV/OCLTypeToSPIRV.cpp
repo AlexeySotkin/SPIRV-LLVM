@@ -327,6 +327,9 @@ OCLTypeToSPIRV::adaptArgumentsByMetadata(Function* F) {
       Changed = true;
     } else if (isPointerToOpaqueStructType(NewTy)) {
       auto STName = NewTy->getPointerElementType()->getStructName();
+      // No need to addapt the type if it already has an access qualifier
+      if (hasAccessQualifiedName(STName))
+          continue;
       if (STName.startswith(kSPR2TypeName::ImagePrefix) ||
           STName == kSPR2TypeName::Pipe) {
         auto Ty = STName.str();

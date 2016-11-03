@@ -616,8 +616,19 @@ LLVMToSPIRV::transSPIRVOpaqueType(Type *T) {
       Ops.push_back(atoi(Postfixes[I].c_str()));
     SPIRVTypeImageDescriptor Desc(static_cast<SPIRVImageDimKind>(Ops[0]),
         Ops[1], Ops[2], Ops[3], Ops[4], Ops[5]);
-    return mapType(T, BM->addImageType(SampledT, Desc,
-                   static_cast<spv::AccessQualifier>(Ops[6])));
+    SPIRVTypeImage* TI = BM->addImageType(SampledT, Desc,
+                                          static_cast<spv::AccessQualifier>(Ops[6]));
+
+//    std::string ImageName = std::string(kSPR2TypeName::OCLPrefix)
+//            + rmap<std::string>(TI->getDescriptor());
+//    std::string QName = rmap<std::string>(TI->getAccessQualifier());
+//    // transform: read_only -> ro, write_only -> wo, read_write -> rw
+//    QName = QName.substr(0,1) + QName.substr(QName.find("_") + 1, 1) + "_";
+//    assert(!ImageName.empty() && "image name should not be empty");
+//    ImageName.insert(ImageName.size() - 1, "rw_");
+//    mapType(getOrCreateOpaquePtrType(M, ImageName), TI);
+
+    return mapType(T, TI);
   } else if (TN == kSPIRVTypeName::SampledImg) {
     return mapType(T, BM->addSampledImageType(
         static_cast<SPIRVTypeImage *>(
