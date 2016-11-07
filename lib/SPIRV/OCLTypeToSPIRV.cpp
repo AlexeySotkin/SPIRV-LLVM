@@ -336,8 +336,18 @@ OCLTypeToSPIRV::adaptArgumentsByMetadata(Function* F) {
         auto AccMD = getArgAccessQualifierMetadata(F);
         assert(AccMD && "Invalid access qualifier metadata");
         auto AccStr = getMDOperandAsString(AccMD, I);
-        addAdaptedType(Arg, getOrCreateOpaquePtrType(M,
-            mapOCLTypeNameToSPIRV(Ty, AccStr)));
+        PointerType* AdaptedType = getOrCreateOpaquePtrType(M,
+                                   mapOCLTypeNameToSPIRV(Ty, AccStr));
+        addAdaptedType(Arg, AdaptedType);
+        if (STName == kSPR2TypeName::Pipe && Arg->hasNUses(1)) {
+          User *U = Arg->user_back();
+          if (StoreInst *SI = dyn_cast<StoreInst>(U)) {
+            Value *AI = SI->getPointerOperand();
+            assert(isa<AllocaInst>(AI));
+            unsigned AS = cast<PointerType>(AI->getType())->getAddressSpace();
+            addAdaptedType(AI,PointerType::get(AdaptedType, AS));
+          }
+        }
         Changed = true;
       }
     }

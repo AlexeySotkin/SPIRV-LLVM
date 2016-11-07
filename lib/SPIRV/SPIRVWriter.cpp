@@ -476,8 +476,8 @@ LLVMToSPIRV::transType(Type *T) {
         STName = kSPR2TypeName::Event;
         ST->setName(STName);
       }
-      assert (!STName.startswith(kSPR2TypeName::Pipe) &&
-              "OpenCL type names should be translated to SPIR-V type names");
+      //assert (!STName.startswith(kSPR2TypeName::Pipe) &&
+      //        "OpenCL type names should be translated to SPIR-V type names");
       // ToDo: For SPIR1.2/2.0 there may still be load/store or bitcast
       // instructions using opencl.* type names. We need to handle these
       // type names until they are all mapped or FE generates SPIR-V type
@@ -1043,7 +1043,7 @@ LLVMToSPIRV::transValueWithoutDecoration(Value *V, SPIRVBasicBlock *BB,
 
   if (AllocaInst *Alc = dyn_cast<AllocaInst>(V))
     return mapValue(V, BM->addVariable(
-      transType(Alc->getType()), false,
+      transType(getAnalysis<OCLTypeToSPIRV>().getAdaptedType(V)), false,
       SPIRVLinkageTypeKind::LinkageTypeInternal,
       nullptr, Alc->getName(),
       StorageClassFunction, BB));
