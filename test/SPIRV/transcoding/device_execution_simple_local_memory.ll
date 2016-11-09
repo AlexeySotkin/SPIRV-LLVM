@@ -36,6 +36,28 @@ target triple = "spir64-unknonw-unknown"
 %opencl.clk_event_t = type opaque
 
 ; Function Attrs: nounwind
+; CHECK-LABEL: define {{.*}} @__host_kernel_block_invoke
+define internal spir_func void @__host_kernel_block_invoke(i8* %.block_descriptor, i8 addrspace(3)* %ptr0, i8 addrspace(3)* %ptr1) #0 {
+entry:
+  %.block_descriptor.addr = alloca i8*, align 8
+  %ptr0.addr = alloca i8 addrspace(3)*, align 8
+  %ptr1.addr = alloca i8 addrspace(3)*, align 8
+  %block.addr = alloca <{}>*, align 8
+  store i8* %.block_descriptor, i8** %.block_descriptor.addr, align 8
+  %0 = load i8** %.block_descriptor.addr
+  store i8 addrspace(3)* %ptr0, i8 addrspace(3)** %ptr0.addr, align 8
+  store i8 addrspace(3)* %ptr1, i8 addrspace(3)** %ptr1.addr, align 8
+  %block = bitcast i8* %.block_descriptor to <{}>*
+  store <{}>* %block, <{}>** %block.addr, align 8
+  %1 = load i8 addrspace(3)** %ptr0.addr, align 8
+  %2 = bitcast i8 addrspace(3)* %1 to float addrspace(3)*
+  %3 = load i8 addrspace(3)** %ptr1.addr, align 8
+  %4 = bitcast i8 addrspace(3)* %3 to float addrspace(3)*
+  call spir_func void @device_kernel(float addrspace(3)* %2, float addrspace(3)* %4)
+  ret void
+}
+
+; Function Attrs: nounwind
 define spir_func void @device_kernel(float addrspace(3)* %ptr0, float addrspace(3)* %ptr1) #0 {
 entry:
   %ptr0.addr = alloca float addrspace(3)*, align 8
@@ -77,28 +99,6 @@ entry:
   %mul = mul i32 %5, %6
 ; CHECK: call {{.*}} @_Z14enqueue_kernel{{.*}}U13block_pointerFvPU3AS3vzEjz({{.*}}, %opencl.block* {{.*}}, i32 {{.*}}, i32 {{.*}})
   %call3 = call spir_func i32 (%opencl.queue_t*, i32, %struct.ndrange_t*, i32, %opencl.clk_event_t**, %opencl.clk_event_t**, %opencl.block*, i32, ...)* @_Z14enqueue_kernel9ocl_queuei9ndrange_tjPK12ocl_clkeventP12ocl_clkeventU13block_pointerFvPU3AS3vzEjz(%opencl.queue_t* %call2, i32 241, %struct.ndrange_t* byval %agg.tmp, i32 0, %opencl.clk_event_t** null, %opencl.clk_event_t** null, %opencl.block* %3, i32 %4, i32 %mul)
-  ret void
-}
-
-; Function Attrs: nounwind
-; CHECK-LABEL: define {{.*}} @__host_kernel_block_invoke
-define internal spir_func void @__host_kernel_block_invoke(i8* %.block_descriptor, i8 addrspace(3)* %ptr0, i8 addrspace(3)* %ptr1) #0 {
-entry:
-  %.block_descriptor.addr = alloca i8*, align 8
-  %ptr0.addr = alloca i8 addrspace(3)*, align 8
-  %ptr1.addr = alloca i8 addrspace(3)*, align 8
-  %block.addr = alloca <{}>*, align 8
-  store i8* %.block_descriptor, i8** %.block_descriptor.addr, align 8
-  %0 = load i8** %.block_descriptor.addr
-  store i8 addrspace(3)* %ptr0, i8 addrspace(3)** %ptr0.addr, align 8
-  store i8 addrspace(3)* %ptr1, i8 addrspace(3)** %ptr1.addr, align 8
-  %block = bitcast i8* %.block_descriptor to <{}>*
-  store <{}>* %block, <{}>** %block.addr, align 8
-  %1 = load i8 addrspace(3)** %ptr0.addr, align 8
-  %2 = bitcast i8 addrspace(3)* %1 to float addrspace(3)*
-  %3 = load i8 addrspace(3)** %ptr1.addr, align 8
-  %4 = bitcast i8 addrspace(3)* %3 to float addrspace(3)*
-  call spir_func void @device_kernel(float addrspace(3)* %2, float addrspace(3)* %4)
   ret void
 }
 

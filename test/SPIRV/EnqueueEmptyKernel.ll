@@ -27,6 +27,17 @@ target triple = "spir64-unknown-unknown"
 ; CHECK-SPIRV: TypePointer [[Int8Ptr:[0-9]+]] {{[0-9]+}} [[Int8]]
 ; CHECK-SPIRV: ConstantNull [[Int8Ptr]] [[NullInt8Ptr:[0-9]+]]
 
+
+; CHECK-SPIRV: Function [[Void]] [[Invoke:[0-9]+]] {{[0-9]+}} {{[0-9]+}}
+; CHECK-SPIRV-NEXT: FunctionParameter [[Int8Ptr]]  {{[0-9]+}}
+
+; Function Attrs: nounwind
+define internal spir_func void @__test_enqueue_empty_block_invoke(i8* %.block_descriptor) #0 {
+entry:
+  %block = bitcast i8* %.block_descriptor to <{}>*
+  ret void
+}
+
 ; Function Attrs: nounwind
 define spir_kernel void @test_enqueue_empty() #0 {
 entry:
@@ -36,7 +47,7 @@ entry:
   %0 = call %opencl.block* @spir_block_bind(i8* bitcast (void (i8*)* @__test_enqueue_empty_block_invoke to i8*), i32 0, i32 0, i8* null)
   %call1 = call spir_func i32 @_Z14enqueue_kernel9ocl_queuei9ndrange_tjPK12ocl_clkeventP12ocl_clkeventU13block_pointerFvvE(%opencl.queue_t* %call, i32 1, %struct.ndrange_t* byval %agg.tmp, i32 0, %opencl.clk_event_t** null, %opencl.clk_event_t** null, %opencl.block* %0)
   ret void
-; CHECK-SPIRV: EnqueueKernel {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} [[Invoke:[0-9]+]] [[NullInt8Ptr]] {{[0-9]+}} {{[0-9]+}}
+; CHECK-SPIRV: EnqueueKernel {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} {{[0-9]+}} [[Invoke]] [[NullInt8Ptr]] {{[0-9]+}} {{[0-9]+}}
 
 }
 
@@ -45,17 +56,6 @@ declare spir_func i32 @_Z14enqueue_kernel9ocl_queuei9ndrange_tjPK12ocl_clkeventP
 declare spir_func %opencl.queue_t* @_Z17get_default_queuev() #1
 
 declare spir_func void @_Z10ndrange_1Dm(%struct.ndrange_t* sret, i64) #1
-
-
-; CHECK-SPIRV: Function [[Void]] [[Invoke]] {{[0-9]+}} {{[0-9]+}}
-; CHECK-SPIRV-NEXT: FunctionParameter [[Int8Ptr]]  {{[0-9]+}}
-
-; Function Attrs: nounwind
-define internal spir_func void @__test_enqueue_empty_block_invoke(i8* %.block_descriptor) #0 {
-entry:
-  %block = bitcast i8* %.block_descriptor to <{}>*
-  ret void
-}
 
 declare %opencl.block* @spir_block_bind(i8*, i32, i32, i8*)
 
