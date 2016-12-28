@@ -344,7 +344,9 @@ private:
   typedef std::vector<SPIRVMemberName *> SPIRVMemberNameVec;
   typedef std::vector<SPIRVDecorationGroup *> SPIRVDecGroupVec;
   typedef std::vector<SPIRVGroupDecorateGeneric *> SPIRVGroupDecVec;
-  typedef std::map<SPIRVId, SPIRVExtInstSetKind> SPIRVIdToBuiltinSetMap;
+  typedef std::map<SPIRVId, SPIRVExtInstSetKind> SPIRVIdToInstructionSetMap;
+  //typedef std::map<SPIRVExtInstSetKind, SPIRVId> InstructionSetToSPIRVId;
+  
   typedef std::map<SPIRVExecutionModelKind, SPIRVIdSet> SPIRVExecModelIdSetMap;
   typedef std::map<SPIRVExecutionModelKind, SPIRVIdVec> SPIRVExecModelIdVecMap;
   typedef std::unordered_map<std::string, SPIRVString*> SPIRVStringMap;
@@ -358,7 +360,8 @@ private:
   SPIRVConstantVector ConstVec;
   SPIRVVariableVec VariableVec;
   SPIRVEntryVector EntryNoId;         // Entries without id
-  SPIRVIdToBuiltinSetMap IdBuiltinMap;
+  SPIRVIdToInstructionSetMap IdToInstSetMap;
+  //InstructionSetToSPIRVId InstSetToIdMap;
   SPIRVIdSet NamedId;
   SPIRVStringVec StringVec;
   SPIRVMemberNameVec MemberNameVec;
@@ -609,8 +612,8 @@ SPIRVModuleImpl::getEntry(SPIRVId Id) const {
 
 SPIRVExtInstSetKind
 SPIRVModuleImpl::getBuiltinSet(SPIRVId SetId) const {
-  auto Loc = IdBuiltinMap.find(SetId);
-  assert(Loc != IdBuiltinMap.end() && "Invalid builtin set id");
+  auto Loc = IdToInstSetMap.find(SetId);
+  assert(Loc != IdToInstSetMap.end() && "Invalid builtin set id");
   return Loc->second;
 }
 
@@ -643,7 +646,7 @@ SPIRVModuleImpl::importBuiltinSetWithId(const std::string& BuiltinSetName,
   SPIRVExtInstSetKind BuiltinSet = SPIRVEIS_Count;
   SPIRVCKRT(SPIRVBuiltinSetNameMap::rfind(BuiltinSetName, &BuiltinSet),
       InvalidBuiltinSetName, "Actual is " + BuiltinSetName);
-  IdBuiltinMap[BuiltinSetId] = BuiltinSet;
+  IdToInstSetMap[BuiltinSetId] = BuiltinSet;
   return true;
 }
 
@@ -1366,7 +1369,7 @@ operator<< (spv_ostream &O, SPIRVModule &M) {
     O << SPIRVExtension(&M, I);
   }
 
-  for (auto &I:MI.IdBuiltinMap)
+  for (auto &I:MI.IdToInstSetMap)
     O <<  SPIRVExtInstImport(&M, I.first, SPIRVBuiltinSetNameMap::map(I.second));
 
   O << SPIRVMemoryModel(&M);

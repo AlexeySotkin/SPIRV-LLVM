@@ -1390,12 +1390,14 @@ public:
   void setExtSetKindById() {
     assert(Module && "Invalid module");
     ExtSetKind = Module->getBuiltinSet(ExtSetId);
-    assert(ExtSetKind == SPIRVEIS_OpenCL && "not supported");
+    assert((ExtSetKind == SPIRVEIS_OpenCL || ExtSetKind == SPIRVEIS_Debug) 
+           && "not supported");
   }
   void encode(spv_ostream &O) const {
     getEncoder(O) << Type << Id << ExtSetId;
     switch(ExtSetKind) {
     case SPIRVEIS_OpenCL:
+    case SPIRVEIS_Debug:
       getEncoder(O) << ExtOpOCL;
       break;
     default:
@@ -1945,6 +1947,10 @@ protected:
   SPIRVId NumElements;
   SPIRVId Stride;
   SPIRVId Event;
+};
+
+class SPIRVDebugInstruction : public SPIRVInstruction {
+  
 };
 
 enum SPIRVOpKind {

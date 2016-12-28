@@ -194,7 +194,7 @@ public:
     std::string Path;
     splitFileName(File, BaseName, Path);
     Builder.createCompileUnit(dwarf::DW_LANG_C99,
-      BaseName, Path, "spirv", false, "", 0, "", DIBuilder::LineTablesOnly);
+      BaseName, Path, "spirv", false, "", 0, ""/*, DIBuilder::LineTablesOnly*/);
   }
 
   void addDbgInfoVersion() {

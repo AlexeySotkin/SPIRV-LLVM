@@ -52,6 +52,7 @@
 #include "SPIRVMDWalker.h"
 #include "OCLTypeToSPIRV.h"
 #include "OCLUtil.h"
+#include "DebugInfoToSPIRV.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SetVector.h"
@@ -161,7 +162,7 @@ public:
         M(nullptr),
         Ctx(nullptr),
         BM(SMod),
-        ExtSetId(SPIRVID_INVALID),
+        //ExtSetId(SPIRVID_INVALID),
         SrcLang(0),
         SrcLangVer(0),
         DbgTran(nullptr, SMod){
@@ -227,8 +228,7 @@ private:
   SPIRVModule *BM;
   LLVMToSPIRVTypeMap TypeMap;
   LLVMToSPIRVValueMap ValueMap;
-  //ToDo: support multiple builtin sets. Currently assume one builtin set.
-  SPIRVId ExtSetId;
+  std::map<SPIRVExtInstSetKind, SPIRVId> ExtInstSetIds;
   SPIRVWord SrcLang;
   SPIRVWord SrcLangVer;
   LLVMToSPIRVDbgTran DbgTran;
@@ -362,8 +362,8 @@ LLVMToSPIRV::isBuiltinTransToExtInst(Function *F,
   SPIRVExtInstSetKind Set = SPIRVEIS_Count;
   if (!SPIRVExtSetShortNameMap::rfind(ExtSetName, &Set))
     return false;
-  assert(Set == BM->getBuiltinSet(ExtSetId) &&
-      "Invalid extended instruction set");
+  //assert(Set == BM->getBuiltinSet(ExtInstSetIds) &&
+//      "Invalid extended instruction set");
   assert(Set == SPIRVEIS_OpenCL && "Unsupported extended instruction set");
 
   auto ExtOpName = S.substr(Loc + 1);
@@ -1212,9 +1212,16 @@ LLVMToSPIRV::transBuiltinSet() {
   SourceLanguage Kind = BM->getSourceLanguage(&Ver);
   assert((Kind == SourceLanguageOpenCL_C ||
       Kind == SourceLanguageOpenCL_CPP ) && "not supported");
-  std::stringstream SS;
-  SS << "OpenCL.std";
-  return BM->importBuiltinSet(SS.str(), &ExtSetId);
+  SPIRVId EISId;
+  if (!BM->importBuiltinSet("OpenCL.std", &EISId))
+    return false;
+  ExtInstSetIds[SPIRVEIS_OpenCL] = EISId;
+  if (SPIRVMDWalker(*M).getNamedMD("llvm.dbg.cu")) {
+    if (!BM->importBuiltinSet("SPIRV.debug", &EISId))
+      return false;
+    ExtInstSetIds[SPIRVEIS_Debug] = EISId;
+  }
+  return true;
 }
 
 /// Transform sampler* spcv.cast(i32 arg)
@@ -1339,6 +1346,32 @@ LLVMToSPIRV::transIntrinsicInst(IntrinsicInst *II, SPIRVBasicBlock *BB) {
     return transLifetimeIntrinsicInst(OpLifetimeStart, II, BB);
   case Intrinsic::lifetime_end:
     return transLifetimeIntrinsicInst(OpLifetimeStop, II, BB);
+  case Intrinsic::dbg_declare: {
+    II->dump();
+    DbgDeclareInst *DbgDecl = cast<DbgDeclareInst>(II);
+    Value *Val = DbgDecl->getAddress();
+    Val->dump();
+    SPIRVValue *TrValue = transValue(Val,BB);
+    
+    MDNode *Var = DbgDecl->getVariable();
+    Var->dump();
+    for (auto &Op : Var->operands())
+      Op->dump();
+    
+    MDNode *Expr = DbgDecl->getExpression();
+    Expr->dump();
+    DIExpression DIExpr(Expr);
+    unsigned numElem = DIExpr.getNumElements();
+    std::vector<SPIRVValue*> Args(2);
+    Args[0] = TrValue;
+    Args[1] = TrValue;
+    if (numElem)
+      Args.push_back(nullptr);
+    SPIRVInstruction *
+      res = BM->addExtInst(transType(Type::getVoidTy(II->getContext())),
+                           2, 101, Args, BB);
+    return res;
+  }
   default:
     // LLVM intrinsic functions shouldn't get to SPIRV, because they
     // would have no definition there.
@@ -1369,7 +1402,7 @@ LLVMToSPIRV::transCallInst(CallInst *CI, SPIRVBasicBlock *BB) {
       &ExtOp, &Dec))
     return addDecorations(BM->addExtInst(
       transType(CI->getType()),
-      ExtSetId,
+      ExtInstSetIds[ExtSetKind],
       ExtOp,
       transArguments(CI, BB, SPIRVEntry::create_unique(ExtSetKind, ExtOp).get()),
       BB), Dec);
@@ -1543,6 +1576,8 @@ LLVMToSPIRV::translate() {
     return false;
   if (!transExecutionMode())
     return false;
+
+  transDebugMetadata(M, BM);
 
   BM->optimizeDecorates();
   BM->resolveUnknownStructFields();

@@ -260,10 +260,10 @@ public:
                                 const std::string &DemangledName,
                                 unsigned int Offset);
 
-  void visitDbgInfoIntrinsic(DbgInfoIntrinsic &I){
-    I.dropAllReferences();
-    I.eraseFromParent();
-  }
+//  void visitDbgInfoIntrinsic(DbgInfoIntrinsic &I){
+//    I.dropAllReferences();
+//    I.eraseFromParent();
+//  }
   static char ID;
 private:
   Module *M;
@@ -341,7 +341,6 @@ OCL20ToSPIRV::runOnModule(Module& Module) {
   transWorkItemBuiltinsToVariables();
 
   visit(*M);
-
   for (auto &I:ValuesToDelete)
     if (auto Inst = dyn_cast<Instruction>(I))
       Inst->eraseFromParent();

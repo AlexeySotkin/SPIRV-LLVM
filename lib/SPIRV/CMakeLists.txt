@@ -37,6 +37,7 @@ add_llvm_library(LLVMSPIRVLib
   SPIRVWriter.cpp
   SPIRVWriterPass.cpp
   TransOCLMD.cpp
+  DebugInfoToSPIRV.cpp
   )
 
 add_dependencies(LLVMSPIRVLib intrinsics_gen)
