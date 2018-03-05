@@ -11,11 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SPIRV.h"
 #include "SPIRVWriterPass.h"
+
 #include "llvm/IR/Module.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Pass.h"
-#include "llvm/Support/SPIRV.h"
 using namespace llvm;
 
 PreservedAnalyses SPIRVWriterPass::run(Module &M) {
