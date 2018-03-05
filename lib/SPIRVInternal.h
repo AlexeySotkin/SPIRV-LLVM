@@ -45,11 +45,11 @@
 #include "libSPIRV/SPIRVError.h"
 #include "libSPIRV/SPIRVType.h"
 #include "NameMangleAPI.h"
+#include "SPIRV.h"
 
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/Support/SPIRV.h"
 
 #include <utility>
 #include <functional>
