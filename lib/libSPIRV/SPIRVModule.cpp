@@ -562,9 +562,10 @@ SPIRVModuleImpl::addEntry(SPIRVEntry *Entry) {
     }
   }
   if (ValidateCapability) {
-    for (auto &I:Entry->getRequiredCapability()) {
-      assert(CapMap.count(I));
-    }
+    assert(none_of(
+        Entry->getRequiredCapability().begin(),
+        Entry->getRequiredCapability().end(),
+        [this](SPIRVCapabilityKind &val) { return !CapMap.count(val); }));
   }
   return Entry;
 }
@@ -843,8 +844,8 @@ SPIRVModuleImpl::addBasicBlock(SPIRVFunction *Func, SPIRVId Id) {
 const SPIRVDecorateGeneric *
 SPIRVModuleImpl::addDecorate(const SPIRVDecorateGeneric *Dec) {
   SPIRVId Id = Dec->getTargetId();
-  SPIRVEntry *Target = nullptr;
-  bool Found = exist(Id, &Target);
+  bool Found = exist(Id);
+  (void)Found;
   assert (Found && "Decorate target does not exist");
   if (!Dec->getOwner())
     DecorateSet.insert(Dec);
